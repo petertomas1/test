@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Signal Chat",
+  "version": "0.1.0",
+  "identifier": "com.example.signalchat",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [{ "title": "Signal Chat", "width": 1200, "height": 820, "resizable": true }],
+    "security": { "csp": null }
+  },
+  "bundle": { "active": true, "targets": "all", "icon": [] }
+}
