@@ -1,86 +1,83 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChatWindow } from './components/ChatWindow';
-import { Composer } from './components/Composer';
-import { Sidebar } from './components/Sidebar';
+import { FormEvent, useMemo, useState } from 'react';
 import { decryptMessage, encryptMessage } from './crypto';
-import { useNotifications } from './hooks/useNotifications';
-import { ChatMessage, Contact } from './types/chat';
 
-const BACKEND = 'ws://127.0.0.1:8000/ws';
-const ROOM_ID = 'global';
+type ChatMessage = {
+  id: number;
+  from: 'me' | 'peer';
+  encrypted: string;
+  decrypted?: string;
+};
 
 export function App() {
-  const [me, setMe] = useState(`user-${Math.floor(Math.random() * 1000)}`);
-  const [secret, setSecret] = useState('supersecurepass');
+  const [passphrase, setPassphrase] = useState('');
   const [draft, setDraft] = useState('');
-  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [incoming, setIncoming] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [typingUsers, setTypingUsers] = useState<string[]>([]);
-  const wsRef = useRef<WebSocket | null>(null);
-  const { enabled, request, notify } = useNotifications();
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    const ws = new WebSocket(`${BACKEND}/${me}`);
-    wsRef.current = ws;
-    ws.onopen = () => ws.send(JSON.stringify({ type: 'history', room_id: ROOM_ID }));
-    ws.onmessage = async (event) => {
-      const packet = JSON.parse(event.data);
-      if (packet.type === 'presence') {
-        setContacts((prev) => {
-          const filtered = prev.filter((c) => c.id !== packet.user_id);
-          return [...filtered, { id: packet.user_id, name: packet.user_id, status: packet.status, unread: 0 }];
-        });
-      }
-      if (packet.type === 'history') {
-        const decrypted = await Promise.all(packet.messages.map(async (m: ChatMessage) => ({ ...m, plain_text: await decryptMessage(m.cipher_text, secret).catch(() => 'Unable to decrypt') })));
-        setMessages(decrypted);
-      }
-      if (packet.type === 'message') {
-        const plain = await decryptMessage(packet.cipher_text, secret).catch(() => 'Unable to decrypt');
-        const msg = { ...packet, plain_text: plain } as ChatMessage;
-        setMessages((prev) => [...prev, msg]);
-        if (packet.sender_id !== me) notify(`New message from ${packet.sender_id}`, plain);
-      }
-      if (packet.type === 'typing' && packet.is_typing) {
-        setTypingUsers((prev) => Array.from(new Set([...prev, packet.sender_id])));
-      }
-      if (packet.type === 'typing' && !packet.is_typing) {
-        setTypingUsers((prev) => prev.filter((u) => u !== packet.sender_id));
-      }
-    };
-    return () => ws.close();
-  }, [me, notify, secret]);
+  const secureReady = passphrase.trim().length >= 8;
+  const sorted = useMemo(() => [...messages].sort((a, b) => a.id - b.id), [messages]);
 
-  async function sendMessage() {
-    if (!draft.trim() || !wsRef.current) return;
-    const cipher_text = await encryptMessage(draft.trim(), secret);
-    wsRef.current.send(JSON.stringify({ type: 'message', room_id: ROOM_ID, sender_id: me, cipher_text }));
+  async function onSend(event: FormEvent) {
+    event.preventDefault();
+    if (!secureReady || !draft.trim()) return;
+    const encrypted = await encryptMessage(draft.trim(), passphrase);
+    setMessages((prev) => [...prev, { id: Date.now(), from: 'me', encrypted, decrypted: draft.trim() }]);
     setDraft('');
-    wsRef.current.send(JSON.stringify({ type: 'typing', room_id: ROOM_ID, sender_id: me, is_typing: false }));
   }
 
-  function sendTyping(typing: boolean) {
-    wsRef.current?.send(JSON.stringify({ type: 'typing', room_id: ROOM_ID, sender_id: me, is_typing: typing }));
+  async function onReceive(event: FormEvent) {
+    event.preventDefault();
+    setError('');
+    if (!secureReady || !incoming.trim()) return;
+    try {
+      const decrypted = await decryptMessage(incoming.trim(), passphrase);
+      setMessages((prev) => [...prev, { id: Date.now(), from: 'peer', encrypted: incoming.trim(), decrypted }]);
+      setIncoming('');
+    } catch {
+      setError('Could not decrypt message. Verify passphrase and payload.');
+    }
   }
-
-  const activeContacts = useMemo(() => contacts.filter((c) => c.id !== me), [contacts, me]);
 
   return (
-    <main className="app-shell">
-      <section className="panel topbar">
-        <h1>WhatsApp-like Secure Chat</h1>
-        <div className="row">
-          <input value={me} onChange={(e) => setMe(e.target.value)} />
-          <input value={secret} type="password" onChange={(e) => setSecret(e.target.value)} />
-          <button onClick={request}>{enabled ? 'Notifications enabled' : 'Enable notifications'}</button>
-        </div>
+    <main className="container">
+      <section className="panel">
+        <h1>Signal-Style Secure Chat</h1>
+        <p className="subtitle">Local-first, end-to-end encrypted message playground.</p>
+        <label>
+          Shared passphrase
+          <input type="password" value={passphrase} onChange={(e) => setPassphrase(e.target.value)} placeholder="At least 8 characters" />
+        </label>
       </section>
-      <section className="layout">
-        <Sidebar me={me} contacts={activeContacts} active={activeContacts[0]?.id ?? ''} onSelect={() => undefined} />
-        <div>
-          <ChatWindow activeName={activeContacts[0]?.id ?? 'Global Room'} messages={messages} typingUsers={typingUsers} />
-          <Composer value={draft} onChange={setDraft} onSend={sendMessage} onTyping={sendTyping} />
-        </div>
+
+      <section className="chat-grid">
+        <form className="panel" onSubmit={onSend}>
+          <h2>Compose</h2>
+          <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={4} placeholder="Type plain text..." />
+          <button disabled={!secureReady || !draft.trim()}>Encrypt & Save</button>
+        </form>
+
+        <form className="panel" onSubmit={onReceive}>
+          <h2>Decrypt Incoming</h2>
+          <textarea value={incoming} onChange={(e) => setIncoming(e.target.value)} rows={4} placeholder="Paste encrypted base64 payload..." />
+          <button disabled={!secureReady || !incoming.trim()}>Decrypt</button>
+          {error && <small className="error">{error}</small>}
+        </form>
+      </section>
+
+      <section className="panel history">
+        <h2>Conversation</h2>
+        {sorted.length === 0 && <p className="empty">No messages yet.</p>}
+        {sorted.map((msg) => (
+          <article key={msg.id} className={`bubble ${msg.from}`}>
+            <header>{msg.from === 'me' ? 'You' : 'Peer'}</header>
+            <p>{msg.decrypted}</p>
+            <details>
+              <summary>Encrypted payload</summary>
+              <code>{msg.encrypted}</code>
+            </details>
+          </article>
+        ))}
       </section>
     </main>
   );
