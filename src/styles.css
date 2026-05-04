@@ -1,0 +1,15 @@
+:root { font-family: Inter, system-ui; color-scheme: dark; }
+body { margin:0; background:#0b1220; color:#eef3ff; }
+.app-shell { max-width:1200px; margin:0 auto; padding:16px; display:grid; gap:12px; }
+.panel { background:#111b2e; border:1px solid #2a3f66; border-radius:14px; padding:12px; }
+.layout { display:grid; grid-template-columns:280px 1fr; gap:12px; }
+.row { display:flex; gap:8px; }
+input,textarea,button { border-radius:10px; border:1px solid #365489; background:#0f1830; color:white; padding:10px; }
+button { background:#3756d1; cursor:pointer; }
+.sidebar .contact { display:flex; justify-content:space-between; width:100%; margin-bottom:8px; }
+.messages { min-height:420px; max-height:420px; overflow:auto; display:grid; gap:8px; }
+.msg { padding:10px; border-radius:10px; max-width:70%; }
+.msg.me { margin-left:auto; background:#2a4c91; }
+.msg.peer { background:#1f5b50; }
+.typing { opacity:.75; }
+.composer { margin-top:12px; }
