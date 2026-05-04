@@ -1,15 +1,15 @@
-:root { font-family: Inter, system-ui; color-scheme: dark; }
-body { margin:0; background:#0b1220; color:#eef3ff; }
-.app-shell { max-width:1200px; margin:0 auto; padding:16px; display:grid; gap:12px; }
-.panel { background:#111b2e; border:1px solid #2a3f66; border-radius:14px; padding:12px; }
-.layout { display:grid; grid-template-columns:280px 1fr; gap:12px; }
-.row { display:flex; gap:8px; }
-input,textarea,button { border-radius:10px; border:1px solid #365489; background:#0f1830; color:white; padding:10px; }
-button { background:#3756d1; cursor:pointer; }
-.sidebar .contact { display:flex; justify-content:space-between; width:100%; margin-bottom:8px; }
-.messages { min-height:420px; max-height:420px; overflow:auto; display:grid; gap:8px; }
-.msg { padding:10px; border-radius:10px; max-width:70%; }
-.msg.me { margin-left:auto; background:#2a4c91; }
-.msg.peer { background:#1f5b50; }
-.typing { opacity:.75; }
-.composer { margin-top:12px; }
+:root { font-family: Inter, system-ui, sans-serif; color-scheme: dark; }
+body { margin: 0; background: radial-gradient(circle at top, #1b2c52, #0b1020); color: #eef2ff; }
+.container { max-width: 980px; margin: 0 auto; padding: 24px; display: grid; gap: 18px; }
+.panel { background: rgba(15,20,37,.85); border: 1px solid rgba(120,151,255,.2); border-radius: 16px; padding: 18px; box-shadow: 0 12px 30px rgba(0,0,0,.35); }
+.subtitle { opacity: .8; margin-top: -8px; }
+.chat-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); }
+input, textarea { width: 100%; border-radius: 10px; border: 1px solid #334a8f; background: #111a35; color: #f7f8ff; padding: 10px; margin-top: 8px; }
+button { margin-top: 10px; border: none; border-radius: 10px; padding: 10px 14px; background: linear-gradient(135deg,#6275ff,#8b5dff); color: white; font-weight: 600; cursor: pointer; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.history .bubble { padding: 12px; border-radius: 12px; margin-top: 10px; }
+.bubble.me { background: #233978; }
+.bubble.peer { background: #284b58; }
+code { display:block; white-space: pre-wrap; word-break: break-all; opacity: .85; }
+.error { color: #ff8a8a; }
+.empty { opacity: .7; }
